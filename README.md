@@ -1,4 +1,8 @@
-# Stratix Gateway
+# Stratix Server
+
+[![Release](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/hotjp/stratix-server/releases/tag/v0.0.1)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8.svg)](https://go.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 超大规模分布式 WebSocket 网关，支持 10万+ Electron 客户端连接到数万至百万个 OpenClaw Gateway 实例。
 
@@ -29,15 +33,19 @@
 - **高性能连接管理**：Go 原生 net 包 + epoll 封装，单实例支持 10 万连接
 - **智能路由**：基于 ClientID 前缀的路由规则，支持百万级目标网关
 - **消息可靠性**：内存环形缓冲区 + 本地文件持久化 + 重试机制
+- **速率限制**：内置令牌桶限流，可配置 QPS 和突发流量
+- **消息历史**：支持客户端消息历史存储和回放
+- **内存管理**：自动 GC 优化，可配置内存上限
 - **轻量部署**：单二进制文件，无依赖，内存占用 ~100MB（10 万连接）
-- **实时监控**：内置 metrics 接口，支持Prometheus 集成
+- **实时监控**：内置 metrics 接口，支持 Prometheus 集成
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 克隆项目
 
 ```bash
-cd /root/.openclaw/workspace/stratix-gateway
+git clone https://github.com/hotjp/stratix-server.git
+cd stratix-server
 go mod download
 ```
 
@@ -49,14 +57,34 @@ go mod download
 {
   "gateway": {
     "listen": ":8080",
-    "maxConnections": 100000
+    "maxConnections": 100000,
+    "connectionTimeout": "90s",
+    "heartbeatInterval": "15s",
+    "maxMessageSize": 52428800,
+    "rateLimit": {
+      "enabled": true,
+      "requestsPerSecond": 1000,
+      "burstSize": 2000
+    },
+    "history": {
+      "enabled": true,
+      "maxPerClient": 500
+    }
   },
   "routes": [
     {
       "clientIdPrefix": "client-1-1000",
       "openclawGateway": "ws://gateway1.example.com:8080/ws"
     }
-  ]
+  ],
+  "buffer": {
+    "size": 1000000,
+    "persistFile": "data/buffer.log"
+  },
+  "memory": {
+    "maxMemoryMB": 2048,
+    "gcInterval": "30s"
+  }
 }
 ```
 
@@ -64,10 +92,14 @@ go mod download
 
 ```bash
 # 编译
-go build -o stratix-gateway cmd/main.go
+go build -o stratix-server cmd/main.go
 
 # 运行
-./stratix-gateway
+./stratix-server
+
+# 或使用脚本
+bash scripts/build.sh
+bash scripts/start.sh
 ```
 
 ### 4. 测试连接
@@ -176,14 +208,14 @@ sysctl -p
 
 ```ini
 [Unit]
-Description=Stratix Gateway
+Description=Stratix Server
 After=network.target
 
 [Service]
 Type=simple
 User=nobody
-ExecStart=/usr/local/bin/stratix-gateway
-WorkingDirectory=/var/lib/stratix-gateway
+ExecStart=/usr/local/bin/stratix-server
+WorkingDirectory=/var/lib/stratix-server
 Restart=always
 RestartSec=5
 LimitNOFILE=1000000
@@ -192,14 +224,9 @@ LimitNOFILE=1000000
 WantedBy=multi-user.target
 ```
 
-## 后续扩展计划
+## 相关项目
 
-- [ ] 集群自动发现
-- [ ] 动态配置更新（ETCD）
-- [ ] 消息持久化到 Redis Stream
-- [ ] Prometheus 监控集成
-- [ ] 请求签名验证
-- [ ] 速率限制
+- [openclaw-stratix-plugin](https://github.com/hotjp/openclaw-stratix-plugin) - OpenClaw 集成插件
 
 ## License
 
