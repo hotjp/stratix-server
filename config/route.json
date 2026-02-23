@@ -1,0 +1,50 @@
+{
+  "gateway": {
+    "listen": ":8080",
+    "maxConnections": 100000,
+    "connectionTimeout": "90s",
+    "heartbeatInterval": "15s",
+    "maxMessageSize": 52428800,
+    "readBufferSize": 65536,
+    "writeBufferSize": 65536,
+    "rateLimit": {
+      "enabled": true,
+      "requestsPerSecond": 1000,
+      "burstSize": 2000
+    },
+    "security": {
+      "allowedOrigins": [],
+      "enableCompression": true,
+      "maxControlFrameSize": 125
+    },
+    "history": {
+      "enabled": true,
+      "maxPerClient": 500,
+      "maxMsgSizeKB": 64,
+      "cleanupHours": 24
+    }
+  },
+  "routes": [
+    {
+      "clientIdPrefix": "client-1-1000",
+      "openclawGateway": "ws://gateway1.example.com:8080/ws"
+    },
+    {
+      "clientIdPrefix": "client-1001-2000",
+      "openclawGateway": "ws://gateway2.example.com:8080/ws"
+    }
+  ],
+  "buffer": {
+    "size": 1000000,
+    "persistFile": "data/buffer.log"
+  },
+  "metrics": {
+    "enabled": true,
+    "logInterval": "10s"
+  },
+  "memory": {
+    "maxMemoryMB": 2048,
+    "gcInterval": "30s",
+    "highWatermark": 0.8
+  }
+}
